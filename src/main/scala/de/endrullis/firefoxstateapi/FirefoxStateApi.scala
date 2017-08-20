@@ -37,7 +37,7 @@ class FirefoxStateApi {
 	def recoveryFile = new File(s"$homeDir/.mozilla/firefox/$profile.default/sessionstore-backups/recovery.js")
 
 	/** The cached state of the recovery.js file. */
-	var state: FirefoxState = updateState()
+	var state: FirefoxState = _
 
 	/** Updates the cached state of the recovery.js and returns it. */
 	def updateState(): FirefoxState = {
