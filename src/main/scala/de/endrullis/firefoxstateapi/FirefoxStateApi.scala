@@ -1,23 +1,24 @@
 package de.endrullis.firefoxstateapi
 
 import java.io.File
+import java.nio.file.Files
+
+import de.endrullis.firefoxstateapi.FirefoxState._
 
 import scala.io.Source
 import scala.util.matching.Regex
 
-import FirefoxState._
-
 /**
-	* An API to access the state of the Firefox web browser.
-	*
-	* @author Stefan Endrullis &lt;stefan@endrullis.de&gt;
-	*/
+ * An API to access the state of the Firefox web browser.
+ *
+ * @author Stefan Endrullis &lt;stefan@endrullis.de&gt;
+ */
 class FirefoxStateApi {
 
 	private val ProfileNamePattern: Regex = "Path=([^.]*)[.]default".r
 
 	private val homeDir: String = System.getProperty("user.home")
-	private val profilesFile = new File(s"$homeDir/.mozilla/firefox/profiles.ini")
+	private val profilesFile    = new File(s"$homeDir/.mozilla/firefox/profiles.ini")
 
 	/** All profiles. */
 	val profiles: List[String] = {
@@ -34,6 +35,7 @@ class FirefoxStateApi {
 	var profile: String = profiles.head
 
 	/** The recovery.js file. */
+	def recoveryLz4File = new File(s"$homeDir/.mozilla/firefox/$profile.default/sessionstore-backups/recovery.jsonlz4")
 	def recoveryFile = new File(s"$homeDir/.mozilla/firefox/$profile.default/sessionstore-backups/recovery.js")
 
 	/** The cached state of the recovery.js file. */
@@ -41,7 +43,22 @@ class FirefoxStateApi {
 
 	/** Updates the cached state of the recovery.js and returns it. */
 	def updateState(): FirefoxState = {
-		state = FirefoxState.parse(recoveryFile)
+		if (recoveryLz4File.exists()) {
+			import net.jpountz.lz4.LZ4Factory
+			val factory = LZ4Factory.fastestInstance
+
+			val compressedBytes = Files.readAllBytes(recoveryLz4File.toPath)
+			val decompressedBytes = new Array[Byte](1000000)
+
+			val decompressor = factory.safeDecompressor
+			val decompressedLength = decompressor.decompress(compressedBytes, 8+4, compressedBytes.length-8-4, decompressedBytes, 0)
+
+			val content = new String(decompressedBytes, 0, decompressedLength, "UTF-8")
+
+			state = FirefoxState.parse(content)
+		} else {
+			state = FirefoxState.parse(recoveryFile)
+		}
 		state
 	}
 
