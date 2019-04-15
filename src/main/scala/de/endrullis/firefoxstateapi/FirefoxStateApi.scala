@@ -48,7 +48,7 @@ class FirefoxStateApi {
 			val factory = LZ4Factory.fastestInstance
 
 			val compressedBytes = Files.readAllBytes(recoveryLz4File.toPath)
-			val decompressedBytes = new Array[Byte](1000000)
+			val decompressedBytes = new Array[Byte](10000000)
 
 			val decompressor = factory.safeDecompressor
 			val decompressedLength = decompressor.decompress(compressedBytes, 8+4, compressedBytes.length-8-4, decompressedBytes, 0)
